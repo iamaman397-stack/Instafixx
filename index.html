@@ -370,14 +370,15 @@
   .forecast .ico{color:var(--amber-text);flex:none;margin-top:1px;}
   .forecast b{font-weight:500;color:var(--amber-text);}
 
+  /* logo image (replaces the text wordmark) */
+  .brand-logo{display:block;height:auto;}
+
   /* splash */
   #splash{justify-content:center;align-items:center;background:#fff;text-align:center;}
-  #splash .brand .glyph{width:52px;height:52px;border-radius:15px;}
-  #splash .brand .word{font-size:34px;}
   #splash .tag{color:var(--muted);font-size:14px;margin-top:14px;}
   #splash .preview{position:absolute;bottom:34px;left:0;right:0;color:var(--muted);font-size:12px;}
   @keyframes pop{0%{transform:scale(.8);opacity:0;}100%{transform:scale(1);opacity:1;}}
-  #splash .brand{animation:pop .5s ease;}
+  #splash .splash-logo{animation:pop .5s ease;}
 
   .divider{height:1px;background:var(--line);margin:16px 0;}
   .stack > * + *{margin-top:12px;}
@@ -394,12 +395,7 @@
 
   <!-- ========== 1. SPLASH ========== -->
   <section class="screen active" id="splash">
-    <div class="brand">
-      <span class="glyph">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4a1.5 1.5 0 0 1-2.1-2.1Z"/></svg>
-      </span>
-      <span class="word">instafix</span>
-    </div>
+    <img class="brand-logo splash-logo" src="images.png" alt="instafix" style="width:210px;" />
     <div class="tag">Doorstep iPhone repair in 30 minutes</div>
     <div class="preview">Private preview — for the Instafix team</div>
   </section>
@@ -408,12 +404,7 @@
   <section class="screen" id="home">
     <div class="scroll has-nav">
       <div class="home-head" style="padding-left:0;padding-right:0;">
-        <div class="brand">
-          <span class="glyph">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4a1.5 1.5 0 0 1-2.1-2.1Z"/></svg>
-          </span>
-          <span class="word" style="font-size:19px;">instafix</span>
-        </div>
+        <img class="brand-logo" src="images.png" alt="instafix" style="width:110px;" />
         <span class="pill pill-purple">Gurugram</span>
       </div>
 
@@ -511,6 +502,7 @@
       </label>
       <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhoto(this)" />
       <img id="photoPreview" class="photo-preview" alt="Your photo" style="display:none;" />
+      <p class="tiny muted" style="margin-top:8px;">We share your photo with the technician so they arrive with the right parts and tools.</p>
     </div>
     <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
       <button class="btn btn-primary" onclick="runDiagnosis()">
@@ -1076,8 +1068,8 @@ const PHOTO_TILE_DEFAULT =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg> Add a photo';
 
 // Real capture: show a local thumbnail of the chosen/taken photo.
-// In production the photo is uploaded and sent to the model for visual diagnosis;
-// here the diagnosis still runs off the text + selected chip only.
+// The photo is shared with the assigned technician so they bring the right parts
+// and tools — it is NOT read by AI. Diagnosis runs off the text + selected chip only.
 function handlePhoto(input){
   const file = input.files && input.files[0];
   if(!file) return;
