@@ -290,6 +290,26 @@
   .fee-box .ico{color:var(--purple);flex:none;margin-top:1px;}
   .fee-box b{font-weight:500;}
 
+  /* speed-first "now" slot card */
+  .now-card{
+    width:100%;display:flex;align-items:center;gap:13px;cursor:pointer;text-align:left;
+    background:var(--white);border:1.5px solid var(--line);border-radius:14px;padding:16px;
+    font-family:inherit;transition:all .14s ease;
+  }
+  .now-card:active{transform:scale(.985);}
+  .now-card.selected{border-color:var(--purple);background:var(--purple-fill);}
+  .now-card .now-ico{width:44px;height:44px;border-radius:12px;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;}
+  .now-card .now-txt{flex:1;}
+  .now-card .now-txt b{font-weight:500;font-size:16px;display:block;color:var(--text);line-height:1.25;}
+  .now-card .now-txt span{font-size:12.5px;color:var(--muted);}
+  .now-card .now-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;color:transparent;flex:none;}
+  .now-card.selected .now-check{background:var(--purple);border-color:var(--purple);color:#fff;}
+
+  /* escalation price breakdown */
+  .pay-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:7px 0;}
+  .pay-row.total{font-weight:500;font-size:17px;border-top:1px solid var(--line);margin-top:6px;padding-top:13px;}
+  .photo-preview{width:100%;max-height:210px;object-fit:cover;border-radius:var(--radius);margin-top:12px;border:1px solid var(--line);}
+
   /* ===== Tracker ===== */
   .map-strip{
     height:120px;border-radius:var(--radius);overflow:hidden;position:relative;
@@ -460,11 +480,12 @@
       <span class="ttl">Select your iPhone</span>
     </div>
     <div class="scroll">
-      <p class="muted small" style="margin-bottom:16px;">Choose your model — we'll tailor the diagnosis.</p>
+      <p class="muted small" style="margin-bottom:4px;">Choose your model — we'll tailor the diagnosis.</p>
+      <p class="muted tiny" style="margin-bottom:16px;">We'll confirm the exact variant during diagnosis.</p>
       <div class="grid2" id="modelGrid"></div>
     </div>
     <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
-      <button class="btn btn-primary" id="modelContinue" onclick="showScreen('describe')">Continue</button>
+      <button class="btn btn-primary" id="modelContinue" onclick="continueToDescribe()">Continue</button>
     </div>
   </section>
 
@@ -483,10 +504,13 @@
       <div class="section-label" style="margin-top:18px;">Or pick what's happening</div>
       <div class="chip-row" id="issueChips"></div>
 
-      <div class="photo-tile" style="margin-top:16px;" onclick="addPhoto(this)">
+      <!-- Real capture: opens the phone camera / gallery on mobile -->
+      <label class="photo-tile" id="photoTile" for="photoInput" style="margin-top:16px;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
         Add a photo
-      </div>
+      </label>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhoto(this)" />
+      <img id="photoPreview" class="photo-preview" alt="Your photo" style="display:none;" />
     </div>
     <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
       <button class="btn btn-primary" onclick="runDiagnosis()">
@@ -524,8 +548,8 @@
 
         <div class="price-box" id="priceBox">
           <div class="lab">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            Locked price · won't change
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3h6l7 7-9.5 9.5L4 12.5V6a3 3 0 0 1 3-3Z"/><circle cx="9" cy="8" r="1.2"/></svg>
+            Approximate price
           </div>
           <div class="amt" id="priceAmt">₹6,499 – ₹7,999</div>
         </div>
@@ -584,41 +608,36 @@
       <span class="ttl">Book your repair</span>
     </div>
     <div class="scroll">
-      <div class="section-label" style="margin-top:0;">Pick a slot</div>
+      <div class="section-label" style="margin-top:0;">When do you need it?</div>
+      <button class="now-card selected" id="nowCard" onclick="selectNow()">
+        <span class="now-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg></span>
+        <span class="now-txt"><b>Get a technician now</b><span>Arrives in ~30 min</span></span>
+        <span class="now-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </button>
+      <p class="muted small" style="margin:16px 2px 10px;">Or pick a later slot</p>
       <div class="chip-row" id="slotChips"></div>
 
       <div class="section-label">Where should we come?</div>
-      <div class="loc-row" onclick="useLocation(this)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-        Use current location
+      <div class="loc-row" onclick="useSavedAddress()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>
+        Use saved address
       </div>
 
-      <div class="card" style="margin-top:12px;">
-        <div class="addr-card">
-          <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></span>
-          <div style="flex:1;">
-            <div class="row" style="justify-content:space-between;">
-              <b style="font-weight:500;">Home</b>
-              <span class="pill pill-purple" style="font-size:11px;">Saved</span>
-            </div>
-            <p class="small" style="margin-top:3px;">Flat 402, Tower A</p>
-            <p class="small muted">Sector 52, Gurugram 122003</p>
-          </div>
-        </div>
-      </div>
-
-      <input type="text" placeholder="Landmark (optional)" style="margin-top:12px;" />
+      <input type="text" id="addrHouse" placeholder="House / Flat no." style="margin-top:12px;" />
+      <input type="text" id="addrStreet" placeholder="Street / Area" style="margin-top:10px;" />
+      <input type="text" id="addrPin" placeholder="Pincode" inputmode="numeric" style="margin-top:10px;" />
+      <input type="text" id="addrLandmark" placeholder="Landmark (optional)" style="margin-top:10px;" />
 
       <div class="fee-box" style="margin-top:16px;">
         <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.2a2.5 2 0 0 1 5 0c0 2.8-5 1.2-5 4 0 1.3 1.1 1.8 2.5 1.8a3 3 0 0 0 2.3-1"/></svg></span>
         <div>
-          <p class="small"><b>₹800 visit fee — refundable</b></p>
-          <p class="tiny muted" style="margin-top:2px;">Adjusted in full against your repair bill. If you don't go ahead, it's refunded.</p>
+          <p class="small"><b>₹800 visit + diagnosis fee — paid to the technician on arrival.</b></p>
+          <p class="tiny muted" style="margin-top:3px;">If your phone needs major work at our store, this ₹800 is adjusted into your final bill. Nothing is charged now.</p>
         </div>
       </div>
     </div>
     <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
-      <button class="btn btn-primary" onclick="showScreen('tracker')">Pay ₹800 &amp; confirm</button>
+      <button class="btn btn-primary" onclick="showScreen('tracker')">Confirm booking</button>
     </div>
   </section>
 
@@ -651,7 +670,7 @@
           </span>
           <div>
             <b style="font-weight:500;">Technician arriving</b>
-            <p class="small muted" id="trackerSlot">Today, 4:00 PM — your selected slot</p>
+            <p class="small muted" id="trackerSlot">Arriving now — in ~30 min</p>
           </div>
         </div>
       </div>
@@ -690,24 +709,38 @@
       <button class="back" onclick="showScreen('tracker')" aria-label="Back">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
-      <span class="ttl">Store inspection</span>
+      <span class="ttl">Store diagnosis</span>
     </div>
     <div class="scroll">
-      <div class="card" style="text-align:center;padding:24px 18px;">
-        <span style="width:60px;height:60px;border-radius:16px;background:var(--amber-fill);color:var(--amber-text);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        </span>
-        <h2>Needs store-level inspection</h2>
-        <p class="muted small" style="margin-top:8px;">This issue needs a closer look at our store. We'll share the revised price after inspection.</p>
+      <div class="card">
+        <div class="row" style="gap:13px;align-items:flex-start;">
+          <span class="result-ico" style="background:var(--green-fill);color:var(--green-text);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <div>
+            <h2>Store diagnosis complete</h2>
+            <p class="muted small" style="margin-top:6px;">We inspected your iPhone at our store. Here's the final quote for your approval.</p>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <p class="tiny muted">What we'll do</p>
+        <p class="small" style="margin-top:4px;">Replace display assembly, reseat the charging flex, full quality check — covered by a 12-month warranty.</p>
+
+        <div class="divider"></div>
+        <div class="pay-row"><span class="muted">Revised repair</span><span>₹6,499</span></div>
+        <div class="pay-row"><span class="muted">₹800 visit fee credit</span><span style="color:var(--green-text);">− ₹800</span></div>
+        <div class="pay-row total"><span>You pay</span><span>₹5,699</span></div>
       </div>
 
       <div class="reco-banner" style="margin-top:12px;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-        Your ₹800 visit fee will be adjusted in the final bill.
+        Your ₹800 visit fee is credited into this final bill.
       </div>
     </div>
     <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));" class="stack">
-      <button class="btn btn-primary" onclick="showScreen('storestatus')">Approve &amp; send to store</button>
+      <button class="btn btn-primary" onclick="showScreen('storestatus')">Approve</button>
+      <p class="tiny muted" style="text-align:center;margin:2px 0;">Your approval is recorded — 4:18 PM</p>
       <button class="btn btn-outline" onclick="showScreen('tracker')">Decline</button>
     </div>
   </section>
@@ -840,7 +873,9 @@ const STATE = {
   model: 'iPhone 14',
   issueText: '',
   selectedChip: '',
-  slot: 'Today, 4:00 PM',
+  pendingChip: '',          // chip to pre-select when arriving from a common-fix shortcut
+  freshEntry: false,        // true when entering the describe flow from Home (reset inputs)
+  slotText: 'Arriving now — in ~30 min',  // full line shown on the tracker
   diagnosis: null
 };
 
@@ -849,7 +884,7 @@ const MODELS = ['iPhone 17','iPhone 16','iPhone 15','iPhone 14','iPhone 13','iPh
 
 const ISSUE_CHIPS = ['Cracked screen','Battery drains',"Won't charge",'Back glass','Camera','Speaker / mic'];
 
-const SLOTS = ['Today 4 PM','Today 6 PM','Tom 11 AM'];
+const SLOTS = ['Today 6 PM','Tom 11 AM'];  // later-slot fallback; "now" is the hero option
 
 const TECH = { name:'Rohit K', rating:4.9, tag:'Certified · ID verified', distance:'2.1 km away', initials:'RK' };
 
@@ -945,20 +980,35 @@ ISSUE_CHIPS.forEach(c => {
   issueChips.appendChild(b);
 });
 
-// Slot chips
+// Slot chips (later-slot fallback — "now" is selected by default via the hero card)
 const slotChips = document.getElementById('slotChips');
-const SLOT_FULL = { 'Today 4 PM':'Today, 4:00 PM', 'Today 6 PM':'Today, 6:00 PM', 'Tom 11 AM':'Tomorrow, 11:00 AM' };
-SLOTS.forEach((s,i) => {
+const SLOT_FULL = { 'Today 6 PM':'Today, 6:00 PM', 'Tom 11 AM':'Tomorrow, 11:00 AM' };
+SLOTS.forEach(s => {
   const b = document.createElement('button');
-  b.className = 'chip' + (i===0 ? ' selected' : '');
+  b.className = 'chip';
   b.textContent = s;
   b.onclick = () => {
     document.querySelectorAll('#slotChips .chip').forEach(x => x.classList.remove('selected'));
     b.classList.add('selected');
-    STATE.slot = SLOT_FULL[s];
+    document.getElementById('nowCard').classList.remove('selected');
+    STATE.slotText = SLOT_FULL[s] + ' — your selected slot';
   };
   slotChips.appendChild(b);
 });
+
+// "Get a technician now" hero — the speed-first default
+function selectNow(){
+  document.getElementById('nowCard').classList.add('selected');
+  document.querySelectorAll('#slotChips .chip').forEach(x => x.classList.remove('selected'));
+  STATE.slotText = 'Arriving now — in ~30 min';
+}
+
+// Fill structured address fields from the saved sample address
+function useSavedAddress(){
+  document.getElementById('addrHouse').value = 'Flat 402, Tower A';
+  document.getElementById('addrStreet').value = 'Sector 52, Gurugram';
+  document.getElementById('addrPin').value = '122003';
+}
 
 // Store-status timeline
 const timeline = document.getElementById('timeline');
@@ -980,46 +1030,79 @@ STORE_STEPS.forEach(step => {
 });
 
 /* ===================== FLOW HELPERS ===================== */
+// "Fix my phone" → Select model → Describe (no chip pre-selected)
 function startRepair(){
+  STATE.pendingChip = '';
+  STATE.freshEntry = true;
   showScreen('model');
 }
 
+// Common-fix shortcuts route through the SAME flow as "Fix my phone":
+// Select model → Describe, with the matching chip pre-selected.
 function quickFix(issue){
-  // jump straight into Describe with the issue pre-filled
-  STATE.selectedChip = '';
-  document.getElementById('describeModelPill').textContent = STATE.model;
-  const ta = document.getElementById('issueText');
-  // map the shortcut label to a sensible pre-filled description / chip
-  const map = {
-    'Cracked screen':'My screen is cracked',
-    'Battery drains':'My battery drains really fast',
-    "Won't charge":"My phone won't charge",
-    'Other':''
+  const chipMap = {
+    'Cracked screen':'Cracked screen',
+    'Battery drains':'Battery drains',
+    "Won't charge":"Won't charge",
+    'Other':''            // Other → no chip pre-selected
   };
-  ta.value = map[issue] !== undefined ? map[issue] : issue;
-  STATE.issueText = ta.value;
-  // pre-select matching chip if present
-  document.querySelectorAll('#issueChips .chip').forEach(x => {
-    x.classList.remove('selected');
-    if((issue==='Cracked screen' && x.textContent==='Cracked screen') ||
-       (issue==='Battery drains' && x.textContent==='Battery drains') ||
-       (issue==="Won't charge" && x.textContent==="Won't charge")){
-      x.classList.add('selected');
-      STATE.selectedChip = x.textContent;
-    }
-  });
+  STATE.pendingChip = chipMap[issue] !== undefined ? chipMap[issue] : '';
+  STATE.freshEntry = true;
+  showScreen('model');
+}
+
+// Model "Continue" → Describe; on a fresh entry, reset inputs and apply any pending chip.
+function continueToDescribe(){
+  document.getElementById('describeModelPill').textContent = STATE.model;
+  if(STATE.freshEntry){
+    const ta = document.getElementById('issueText');
+    ta.value = '';
+    STATE.issueText = '';
+    STATE.selectedChip = '';
+    document.querySelectorAll('#issueChips .chip').forEach(x => {
+      x.classList.remove('selected');
+      if(STATE.pendingChip && x.textContent === STATE.pendingChip){
+        x.classList.add('selected');
+        STATE.selectedChip = x.textContent;
+      }
+    });
+    resetPhoto();
+    STATE.freshEntry = false;
+  }
   showScreen('describe');
 }
 
-function addPhoto(el){
-  el.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Photo added';
-  el.style.color = 'var(--green-text)';
-  el.style.borderColor = '#bfe6d6';
-  el.style.background = 'var(--green-fill)';
+const PHOTO_TILE_DEFAULT =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg> Add a photo';
+
+// Real capture: show a local thumbnail of the chosen/taken photo.
+// In production the photo is uploaded and sent to the model for visual diagnosis;
+// here the diagnosis still runs off the text + selected chip only.
+function handlePhoto(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const img = document.getElementById('photoPreview');
+  img.src = URL.createObjectURL(file);
+  img.style.display = 'block';
+  const tile = document.getElementById('photoTile');
+  tile.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Photo added — tap to change';
+  tile.style.color = 'var(--green-text)';
+  tile.style.borderColor = '#bfe6d6';
+  tile.style.background = 'var(--green-fill)';
 }
 
-function useLocation(el){
-  el.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Location set · Sector 52, Gurugram';
+function resetPhoto(){
+  const img = document.getElementById('photoPreview');
+  if(img){ img.style.display = 'none'; img.removeAttribute('src'); }
+  const input = document.getElementById('photoInput');
+  if(input) input.value = '';
+  const tile = document.getElementById('photoTile');
+  if(tile){
+    tile.innerHTML = PHOTO_TILE_DEFAULT;
+    tile.style.color = '';
+    tile.style.borderColor = '';
+    tile.style.background = '';
+  }
 }
 
 /* ===================== DIAGNOSIS LOGIC (front-end simulation) ===================== */
@@ -1062,7 +1145,7 @@ function runDiagnosis(){
     result = {
       generic:true, title:"We'll confirm on-site", icon:'generic',
       price:'Confirmed on-site', repair:'On-site quote',
-      desc:"We couldn't pin it down from the description alone — our technician will diagnose it free at your door, then lock the price before any work." };
+      desc:"We couldn't pin it down from the description alone — our technician will diagnose it free at your door, then confirm the price before any work." };
   }
 
   STATE.diagnosis = result;
@@ -1098,7 +1181,7 @@ function runDiagnosis(){
     matchPill.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> High match';
     priceBox.style.background = 'var(--green-fill)';
     priceLab.style.color = 'var(--green-text)';
-    priceLab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Locked price · won\'t change';
+    priceLab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3h6l7 7-9.5 9.5L4 12.5V6a3 3 0 0 1 3-3Z"/><circle cx="9" cy="8" r="1.2"/></svg> Approximate price';
   }
 
   // feed fix-or-upgrade + tracker
@@ -1113,7 +1196,7 @@ const _origShow = showScreen;
 showScreen = function(id){
   _origShow(id);
   if(id==='tracker'){
-    document.getElementById('trackerSlot').textContent = STATE.slot + ' — your selected slot';
+    document.getElementById('trackerSlot').textContent = STATE.slotText;
   }
 };
 
