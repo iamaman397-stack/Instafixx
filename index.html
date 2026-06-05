@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#6C3FE8" />
+<title>Instafix — SmartDiagnose</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --purple:#6C3FE8;
+    --purple-dark:#3C3489;
+    --purple-fill:#EEEDFE;
+    --text:#16182B;
+    --muted:#7C7C93;
+    --green-text:#0F6E56;
+    --green-fill:#E1F5EE;
+    --amber-text:#854F0B;
+    --amber-fill:#FAEEDA;
+    --white:#FFFFFF;
+    --page:#F4F3F8;
+    --line:#ECEAF3;
+    --radius:12px;
+    --radius-sm:10px;
+    --frame-w:390px;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Poppins',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    font-weight:400;
+    color:var(--text);
+    background:#E9E7F1;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Device frame — only a real "phone frame" on wide screens. On a real phone it fills the screen. */
+  #app{
+    position:relative;
+    width:100%;
+    max-width:100%;
+    min-height:100vh;
+    min-height:100dvh;
+    background:var(--page);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  @media (min-width:600px){
+    body{padding:24px;}
+    #app{
+      width:var(--frame-w);
+      max-width:var(--frame-w);
+      min-height:844px;
+      height:844px;
+      border-radius:42px;
+      border:11px solid #14121f;
+      box-shadow:0 30px 70px rgba(20,16,36,.35);
+    }
+  }
+
+  /* ===== Screen router ===== */
+  .screen{
+    display:none;
+    flex-direction:column;
+    position:absolute;
+    inset:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    animation:fade .22s ease;
+  }
+  .screen.active{display:flex;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .scroll{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:18px 18px 26px;
+  }
+  .scroll.has-nav{padding-bottom:90px;}
+
+  /* ===== Typography ===== */
+  h1{font-size:25px;line-height:1.18;font-weight:500;margin:0 0 8px;letter-spacing:-.01em;}
+  h2{font-size:19px;font-weight:500;margin:0 0 4px;letter-spacing:-.01em;}
+  p{margin:0;}
+  .muted{color:var(--muted);}
+  .small{font-size:13px;}
+  .tiny{font-size:11.5px;}
+
+  /* ===== Top bar ===== */
+  .topbar{
+    display:flex;align-items:center;gap:10px;
+    padding:16px 18px 6px;
+    position:relative;
+  }
+  .back{
+    width:38px;height:38px;border-radius:11px;border:1px solid var(--line);
+    background:var(--white);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;flex:none;
+  }
+  .topbar .ttl{font-size:17px;font-weight:500;}
+
+  /* ===== Wordmark ===== */
+  .brand{display:inline-flex;align-items:center;gap:8px;}
+  .brand .glyph{
+    width:30px;height:30px;border-radius:9px;background:var(--purple);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .brand .word{font-weight:500;font-size:21px;color:var(--purple);letter-spacing:-.02em;}
+
+  /* ===== Buttons ===== */
+  .btn{
+    appearance:none;border:none;cursor:pointer;width:100%;
+    font-family:inherit;font-weight:500;font-size:15.5px;
+    border-radius:var(--radius);padding:15px 18px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:transform .08s ease,filter .15s ease,background .15s ease;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--purple);color:#fff;}
+  .btn-primary:hover{filter:brightness(1.05);}
+  .btn-ghost{background:var(--purple-fill);color:var(--purple-dark);}
+  .btn-outline{background:var(--white);color:var(--text);border:1px solid var(--line);}
+  .btn-block{margin-top:auto;}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;}
+
+  /* ===== Cards ===== */
+  .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
+  .card+.card{margin-top:12px;}
+
+  /* ===== Chips / pills ===== */
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500;line-height:1;
+  }
+  .pill-purple{background:var(--purple-fill);color:var(--purple-dark);}
+  .pill-green{background:var(--green-fill);color:var(--green-text);}
+  .pill-amber{background:var(--amber-fill);color:var(--amber-text);}
+
+  .preview-tag{
+    position:absolute;top:14px;right:16px;z-index:5;
+  }
+
+  .chip{
+    border:1px solid var(--line);background:var(--white);
+    border-radius:999px;padding:11px 15px;font-size:14px;font-weight:400;
+    cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+    transition:all .14s ease;color:var(--text);
+  }
+  .chip:active{transform:scale(.97);}
+  .chip.selected{border-color:var(--purple);background:var(--purple-fill);color:var(--purple-dark);font-weight:500;}
+
+  .chip-row{display:flex;gap:9px;flex-wrap:wrap;}
+
+  /* model grid */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .model-chip{
+    border:1.5px solid var(--line);background:var(--white);border-radius:var(--radius);
+    padding:16px 14px;font-size:15px;font-weight:500;cursor:pointer;text-align:left;
+    display:flex;align-items:center;gap:9px;transition:all .14s ease;color:var(--text);
+  }
+  .model-chip:active{transform:scale(.98);}
+  .model-chip.selected{border-color:var(--purple);background:var(--purple-fill);color:var(--purple-dark);}
+
+  /* ===== Bottom nav ===== */
+  .bottomnav{
+    position:absolute;left:0;right:0;bottom:0;
+    background:var(--white);border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;align-items:center;
+    padding:9px 6px calc(9px + env(safe-area-inset-bottom,0px));
+    z-index:10;
+  }
+  .navitem{
+    flex:1;background:none;border:none;cursor:pointer;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--muted);font-size:11px;font-weight:400;padding:4px 0;
+  }
+  .navitem svg{width:23px;height:23px;}
+  .navitem.active{color:var(--purple);font-weight:500;}
+
+  /* ===== Home ===== */
+  .home-head{padding:14px 18px 4px;display:flex;align-items:center;justify-content:space-between;}
+  .hero{padding:6px 0 4px;}
+  .hero h1{font-size:27px;}
+
+  .action-card{
+    background:var(--purple);color:#fff;border-radius:16px;padding:20px;
+    display:flex;align-items:center;gap:14px;cursor:pointer;
+    transition:transform .08s ease,filter .15s;margin-top:6px;
+  }
+  .action-card:active{transform:scale(.985);}
+  .action-card:hover{filter:brightness(1.04);}
+  .action-card .ac-ico{
+    width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .action-card .ac-txt{flex:1;}
+  .action-card .ac-txt b{font-weight:500;font-size:16.5px;display:block;line-height:1.25;}
+  .action-card .ac-txt span{font-size:13px;opacity:.85;}
+
+  .section-label{font-size:13px;font-weight:500;color:var(--muted);margin:22px 2px 11px;}
+
+  .fix-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .fix-tile{
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);
+    padding:15px;display:flex;align-items:center;gap:11px;cursor:pointer;
+    transition:all .12s ease;color:var(--text);font-weight:500;font-size:14.5px;
+  }
+  .fix-tile:active{transform:scale(.98);}
+  .fix-tile:hover{border-color:#d9d4ee;}
+  .fix-tile .ft-ico{
+    width:38px;height:38px;border-radius:10px;background:var(--purple-fill);
+    color:var(--purple);display:flex;align-items:center;justify-content:center;flex:none;
+  }
+
+  .trust{
+    display:flex;justify-content:space-between;gap:8px;margin-top:22px;
+    background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:15px 10px;
+  }
+  .trust .t{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .trust .t .ico{color:var(--purple);}
+  .trust .t span{font-size:11.5px;color:var(--muted);line-height:1.3;}
+
+  /* ===== Describe ===== */
+  textarea,input[type=text]{
+    width:100%;font-family:inherit;font-size:15px;color:var(--text);
+    border:1px solid var(--line);border-radius:var(--radius);padding:14px;
+    background:var(--white);resize:none;outline:none;
+  }
+  textarea:focus,input[type=text]:focus{border-color:var(--purple);}
+  textarea::placeholder,input::placeholder{color:#b4b2c4;}
+
+  .photo-tile{
+    border:1.5px dashed #cfc9e6;border-radius:var(--radius);padding:18px;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    color:var(--purple-dark);font-weight:500;font-size:14px;cursor:pointer;background:#faf9ff;
+  }
+  .photo-tile:active{transform:scale(.99);}
+
+  /* ===== Diagnosis ===== */
+  .result-ico{
+    width:54px;height:54px;border-radius:14px;background:var(--purple-fill);color:var(--purple);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .price-box{
+    background:var(--green-fill);border-radius:var(--radius);padding:16px;margin-top:14px;
+  }
+  .price-box .lab{font-size:12px;font-weight:500;color:var(--green-text);display:flex;align-items:center;gap:6px;}
+  .price-box .amt{font-size:26px;font-weight:500;color:var(--text);margin-top:4px;letter-spacing:-.01em;}
+
+  /* fix or upgrade rows */
+  .compare-row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;}
+  .compare-row+.compare-row{border-top:1px solid var(--line);}
+  .compare-row .ci{display:flex;align-items:center;gap:12px;}
+  .compare-row .ci .ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none;}
+  .compare-row .ci .ico.p{background:var(--purple-fill);color:var(--purple);}
+  .compare-row .ci .ico.g{background:#EEF0F4;color:#5b6172;}
+  .compare-row .lbl{font-size:14px;}
+  .compare-row .lbl span{display:block;font-size:12px;color:var(--muted);}
+  .compare-row .val{font-weight:500;font-size:16px;white-space:nowrap;}
+
+  .reco-banner{
+    background:var(--green-fill);color:var(--green-text);border-radius:var(--radius);
+    padding:14px 16px;display:flex;align-items:center;gap:11px;margin-top:14px;font-size:14px;font-weight:500;
+  }
+
+  /* ===== Book ===== */
+  .addr-card{display:flex;gap:12px;align-items:flex-start;}
+  .addr-card .ico{width:38px;height:38px;border-radius:10px;background:var(--purple-fill);color:var(--purple);display:flex;align-items:center;justify-content:center;flex:none;}
+  .loc-row{
+    display:flex;align-items:center;gap:10px;color:var(--purple-dark);font-weight:500;
+    font-size:14px;padding:13px 14px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--white);cursor:pointer;
+  }
+  .loc-row:active{transform:scale(.99);}
+  .fee-box{
+    background:var(--purple-fill);border-radius:var(--radius);padding:14px 16px;
+    display:flex;gap:11px;align-items:flex-start;
+  }
+  .fee-box .ico{color:var(--purple);flex:none;margin-top:1px;}
+  .fee-box b{font-weight:500;}
+
+  /* ===== Tracker ===== */
+  .map-strip{
+    height:120px;border-radius:var(--radius);overflow:hidden;position:relative;
+    background:
+      repeating-linear-gradient(0deg,#e7e4f2 0 1px,transparent 1px 26px),
+      repeating-linear-gradient(90deg,#e7e4f2 0 1px,transparent 1px 26px),
+      #f1eff8;
+    border:1px solid var(--line);
+  }
+  .map-strip .route{position:absolute;left:18px;right:18px;top:50%;height:3px;background:var(--purple);border-radius:2px;}
+  .map-strip .dot{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--purple);top:calc(50% - 7px);box-shadow:0 0 0 5px rgba(108,63,232,.18);}
+  .map-strip .dot.a{left:14px;}
+  .map-strip .pin{position:absolute;right:12px;top:calc(50% - 20px);color:var(--purple);}
+  .map-strip .badge{position:absolute;left:12px;bottom:10px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500;}
+
+  .tech-card{display:flex;align-items:center;gap:13px;}
+  .tech-card .av{width:50px;height:50px;border-radius:50%;background:var(--purple-fill);color:var(--purple-dark);display:flex;align-items:center;justify-content:center;font-weight:500;font-size:18px;flex:none;}
+  .tech-card .meta b{font-weight:500;font-size:15.5px;}
+  .tech-card .meta .sub{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;}
+  .tech-card .call{margin-left:auto;width:42px;height:42px;border-radius:11px;background:var(--green-fill);color:var(--green-text);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;}
+
+  .link-row{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--white);cursor:pointer;color:var(--purple-dark);font-weight:500;font-size:14px;
+  }
+  .link-row:active{transform:scale(.99);}
+
+  /* ===== Store status timeline ===== */
+  .timeline{position:relative;padding-left:4px;}
+  .tl-item{display:flex;gap:14px;padding-bottom:4px;}
+  .tl-marker{display:flex;flex-direction:column;align-items:center;flex:none;}
+  .tl-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;}
+  .tl-dot.done{background:var(--green-fill);color:var(--green-text);}
+  .tl-dot.current{background:var(--purple);color:#fff;box-shadow:0 0 0 5px rgba(108,63,232,.16);}
+  .tl-dot.pending{background:#fff;border:2px solid var(--line);}
+  .tl-line{width:2px;flex:1;background:var(--line);margin:3px 0;min-height:18px;}
+  .tl-item:last-child .tl-line{display:none;}
+  .tl-body{padding-bottom:18px;}
+  .tl-body .t{font-size:15px;font-weight:500;}
+  .tl-body .t.muted{font-weight:400;color:var(--muted);}
+  .tl-body .s{font-size:12.5px;color:var(--muted);margin-top:1px;}
+
+  /* ===== Health ===== */
+  .score-ring{display:flex;align-items:center;gap:18px;}
+  .score-num{font-size:40px;font-weight:500;letter-spacing:-.02em;line-height:1;}
+  .score-num small{font-size:16px;color:var(--muted);font-weight:400;}
+  .progress{height:8px;border-radius:999px;background:#ECEAF3;overflow:hidden;margin-top:12px;}
+  .progress > i{display:block;height:100%;background:var(--purple);border-radius:999px;}
+  .health-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+  .h-tile{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:15px;}
+  .h-tile .v{font-size:24px;font-weight:500;margin-top:6px;}
+  .h-tile .k{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .forecast{
+    background:var(--amber-fill);border-radius:var(--radius);padding:16px;margin-top:14px;
+    display:flex;gap:13px;align-items:flex-start;
+  }
+  .forecast .ico{color:var(--amber-text);flex:none;margin-top:1px;}
+  .forecast b{font-weight:500;color:var(--amber-text);}
+
+  /* splash */
+  #splash{justify-content:center;align-items:center;background:#fff;text-align:center;}
+  #splash .brand .glyph{width:52px;height:52px;border-radius:15px;}
+  #splash .brand .word{font-size:34px;}
+  #splash .tag{color:var(--muted);font-size:14px;margin-top:14px;}
+  #splash .preview{position:absolute;bottom:34px;left:0;right:0;color:var(--muted);font-size:12px;}
+  @keyframes pop{0%{transform:scale(.8);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  #splash .brand{animation:pop .5s ease;}
+
+  .divider{height:1px;background:var(--line);margin:16px 0;}
+  .stack > * + *{margin-top:12px;}
+  .row{display:flex;align-items:center;gap:8px;}
+  .spacer{flex:1;}
+
+  /* stub screens */
+  .stub-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--muted);gap:12px;padding:40px;}
+  .stub-empty .ico{width:64px;height:64px;border-radius:18px;background:var(--purple-fill);color:var(--purple);display:flex;align-items:center;justify-content:center;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ========== 1. SPLASH ========== -->
+  <section class="screen active" id="splash">
+    <div class="brand">
+      <span class="glyph">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4a1.5 1.5 0 0 1-2.1-2.1Z"/></svg>
+      </span>
+      <span class="word">instafix</span>
+    </div>
+    <div class="tag">Doorstep iPhone repair in 30 minutes</div>
+    <div class="preview">Private preview — for the Instafix team</div>
+  </section>
+
+  <!-- ========== 2. HOME ========== -->
+  <section class="screen" id="home">
+    <div class="scroll has-nav">
+      <div class="home-head" style="padding-left:0;padding-right:0;">
+        <div class="brand">
+          <span class="glyph">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4a1.5 1.5 0 0 1-2.1-2.1Z"/></svg>
+          </span>
+          <span class="word" style="font-size:19px;">instafix</span>
+        </div>
+        <span class="pill pill-purple">Gurugram</span>
+      </div>
+
+      <div class="hero">
+        <h1>Broken phone? Fixed at your door in 30 minutes.</h1>
+        <p class="muted small">Certified technicians come to you. Transparent, locked pricing.</p>
+      </div>
+
+      <div class="action-card" onclick="startRepair()">
+        <div class="ac-ico">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4a1.5 1.5 0 0 1-2.1-2.1Z"/></svg>
+        </div>
+        <div class="ac-txt">
+          <b>Fix my phone</b>
+          <span>Describe it or snap a photo</span>
+        </div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+
+      <div class="section-label">Common fixes</div>
+      <div class="fix-grid">
+        <div class="fix-tile" onclick="quickFix('Cracked screen')">
+          <span class="ft-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="m10 6 3 4-2 3 3 3"/></svg></span>
+          Screen
+        </div>
+        <div class="fix-tile" onclick="quickFix('Battery drains')">
+          <span class="ft-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/><path d="M6 11v2"/></svg></span>
+          Battery
+        </div>
+        <div class="fix-tile" onclick="quickFix(&quot;Won't charge&quot;)">
+          <span class="ft-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg></span>
+          Charging
+        </div>
+        <div class="fix-tile" onclick="quickFix('Other')">
+          <span class="ft-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 4"/><path d="M12 17h.01"/></svg></span>
+          Other
+        </div>
+      </div>
+
+      <div class="trust">
+        <div class="t">
+          <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <span>30-min repair</span>
+        </div>
+        <div class="t">
+          <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+          <span>In front of you</span>
+        </div>
+        <div class="t">
+          <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span>12-mo warranty</span>
+        </div>
+      </div>
+    </div>
+    <!-- bottom nav injected -->
+  </section>
+
+  <!-- ========== 3. SELECT MODEL ========== -->
+  <section class="screen" id="model">
+    <div class="topbar">
+      <button class="back" onclick="showScreen('home')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Select your iPhone</span>
+    </div>
+    <div class="scroll">
+      <p class="muted small" style="margin-bottom:16px;">Choose your model — we'll tailor the diagnosis.</p>
+      <div class="grid2" id="modelGrid"></div>
+    </div>
+    <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
+      <button class="btn btn-primary" id="modelContinue" onclick="showScreen('describe')">Continue</button>
+    </div>
+  </section>
+
+  <!-- ========== 4. DESCRIBE ========== -->
+  <section class="screen" id="describe">
+    <div class="topbar">
+      <button class="back" onclick="showScreen('model')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">What's wrong with it?</span>
+    </div>
+    <div class="scroll">
+      <div style="margin-bottom:14px;"><span class="pill pill-purple" id="describeModelPill">iPhone 14</span></div>
+      <textarea id="issueText" rows="3" placeholder="Tell us in your words…"></textarea>
+
+      <div class="section-label" style="margin-top:18px;">Or pick what's happening</div>
+      <div class="chip-row" id="issueChips"></div>
+
+      <div class="photo-tile" style="margin-top:16px;" onclick="addPhoto(this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        Add a photo
+      </div>
+    </div>
+    <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
+      <button class="btn btn-primary" onclick="runDiagnosis()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2.5 6.5L22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5Z"/></svg>
+        Diagnose
+      </button>
+    </div>
+  </section>
+
+  <!-- ========== 5. DIAGNOSIS ========== -->
+  <section class="screen" id="diagnosis">
+    <div class="topbar">
+      <button class="back" onclick="showScreen('describe')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Diagnosis</span>
+    </div>
+    <div class="scroll">
+      <div class="card">
+        <div class="row" style="align-items:flex-start;gap:14px;">
+          <div class="result-ico" id="diagIcon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="m10 6 3 4-2 3 3 3"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="row" style="justify-content:space-between;">
+              <h2 id="diagTitle">Display replacement</h2>
+            </div>
+            <span class="pill pill-green" id="diagMatch" style="margin-top:6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              High match
+            </span>
+            <p class="muted small" id="diagDesc" style="margin-top:10px;">Your screen glass and display panel need replacing. We carry the part on-site.</p>
+          </div>
+        </div>
+
+        <div class="price-box" id="priceBox">
+          <div class="lab">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            Locked price · won't change
+          </div>
+          <div class="amt" id="priceAmt">₹6,499 – ₹7,999</div>
+        </div>
+      </div>
+      <p class="tiny muted" style="margin-top:12px;text-align:center;">Final price is confirmed on-site before any work begins.</p>
+    </div>
+    <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
+      <button class="btn btn-primary" id="diagNext" onclick="showScreen('worth')">Next: is it worth fixing?</button>
+    </div>
+  </section>
+
+  <!-- ========== 6. FIX OR UPGRADE ========== -->
+  <section class="screen" id="worth">
+    <div class="topbar">
+      <button class="back" onclick="showScreen('diagnosis')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Fix or upgrade?</span>
+    </div>
+    <div class="scroll">
+      <p class="muted small" style="margin-bottom:14px;">A quick, honest gut-check before you commit.</p>
+      <div class="card">
+        <div class="compare-row">
+          <div class="ci">
+            <span class="ico p"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.4 2.4a1.5 1.5 0 0 1-2.1-2.1Z"/></svg></span>
+            <div class="lbl"><b style="font-weight:500;">Repair now</b><span>One-time fix · 12-mo warranty</span></div>
+          </div>
+          <div class="val" id="worthRepair">₹6,499</div>
+        </div>
+        <div class="compare-row">
+          <div class="ci">
+            <span class="ico g"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+            <div class="lbl"><b style="font-weight:500;">Your iPhone 14</b><span>Indicative resale value</span></div>
+          </div>
+          <div class="val">~₹32,000</div>
+        </div>
+      </div>
+
+      <div class="reco-banner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        Repair makes sense — +18 good months
+      </div>
+      <p class="tiny muted" style="margin-top:12px;">*Indicative resale value, based on recent listings for this model.</p>
+    </div>
+    <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
+      <button class="btn btn-primary" onclick="showScreen('book')">Book repair</button>
+    </div>
+  </section>
+
+  <!-- ========== 7. BOOK ========== -->
+  <section class="screen" id="book">
+    <div class="topbar">
+      <button class="back" onclick="showScreen('worth')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Book your repair</span>
+    </div>
+    <div class="scroll">
+      <div class="section-label" style="margin-top:0;">Pick a slot</div>
+      <div class="chip-row" id="slotChips"></div>
+
+      <div class="section-label">Where should we come?</div>
+      <div class="loc-row" onclick="useLocation(this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        Use current location
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="addr-card">
+          <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></span>
+          <div style="flex:1;">
+            <div class="row" style="justify-content:space-between;">
+              <b style="font-weight:500;">Home</b>
+              <span class="pill pill-purple" style="font-size:11px;">Saved</span>
+            </div>
+            <p class="small" style="margin-top:3px;">Flat 402, Tower A</p>
+            <p class="small muted">Sector 52, Gurugram 122003</p>
+          </div>
+        </div>
+      </div>
+
+      <input type="text" placeholder="Landmark (optional)" style="margin-top:12px;" />
+
+      <div class="fee-box" style="margin-top:16px;">
+        <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.2a2.5 2 0 0 1 5 0c0 2.8-5 1.2-5 4 0 1.3 1.1 1.8 2.5 1.8a3 3 0 0 0 2.3-1"/></svg></span>
+        <div>
+          <p class="small"><b>₹800 visit fee — refundable</b></p>
+          <p class="tiny muted" style="margin-top:2px;">Adjusted in full against your repair bill. If you don't go ahead, it's refunded.</p>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));">
+      <button class="btn btn-primary" onclick="showScreen('tracker')">Pay ₹800 &amp; confirm</button>
+    </div>
+  </section>
+
+  <!-- ========== 8. TRACKER ========== -->
+  <section class="screen" id="tracker">
+    <span class="pill pill-amber preview-tag">preview</span>
+    <div class="topbar">
+      <button class="back" onclick="showScreen('home')" aria-label="Home">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Tracking</span>
+    </div>
+    <div class="scroll">
+      <div class="card" style="background:var(--green-fill);border-color:#cdeee1;">
+        <div class="row" style="gap:11px;">
+          <span class="pill pill-green" style="width:30px;height:30px;padding:0;justify-content:center;border-radius:50%;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          <div>
+            <b style="font-weight:500;color:var(--green-text);">Booking confirmed</b>
+            <p class="small" style="color:var(--green-text);opacity:.85;" id="trackerSub">iPhone 14 · Display replacement</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="gap:11px;align-items:flex-start;">
+          <span style="width:38px;height:38px;border-radius:10px;background:var(--purple-fill);color:var(--purple);display:flex;align-items:center;justify-content:center;flex:none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <div>
+            <b style="font-weight:500;">Technician arriving</b>
+            <p class="small muted" id="trackerSlot">Today, 4:00 PM — your selected slot</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="map-strip" style="margin-bottom:14px;">
+          <div class="route"></div>
+          <div class="dot a"></div>
+          <div class="pin"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+          <div class="badge">📍 2.1 km away</div>
+        </div>
+        <div class="tech-card">
+          <span class="av">RK</span>
+          <div class="meta">
+            <b>Rohit K</b>
+            <div class="sub">
+              <span class="pill pill-amber" style="padding:3px 8px;">★ 4.9</span>
+              <span>Certified · ID verified</span>
+            </div>
+          </div>
+          <span class="call"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L19 14l2 5v3a1 1 0 0 1-1 1A17 17 0 0 1 3 6a1 1 0 0 1 1-1Z"/></svg></span>
+        </div>
+      </div>
+
+      <div class="link-row" style="margin-top:12px;" onclick="showScreen('escalation')">
+        <span>See store-repair flow</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 9. STORE ESCALATION ========== -->
+  <section class="screen" id="escalation">
+    <span class="pill pill-amber preview-tag">preview</span>
+    <div class="topbar">
+      <button class="back" onclick="showScreen('tracker')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Store inspection</span>
+    </div>
+    <div class="scroll">
+      <div class="card" style="text-align:center;padding:24px 18px;">
+        <span style="width:60px;height:60px;border-radius:16px;background:var(--amber-fill);color:var(--amber-text);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        </span>
+        <h2>Needs store-level inspection</h2>
+        <p class="muted small" style="margin-top:8px;">This issue needs a closer look at our store. We'll share the revised price after inspection.</p>
+      </div>
+
+      <div class="reco-banner" style="margin-top:12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        Your ₹800 visit fee will be adjusted in the final bill.
+      </div>
+    </div>
+    <div style="padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));" class="stack">
+      <button class="btn btn-primary" onclick="showScreen('storestatus')">Approve &amp; send to store</button>
+      <button class="btn btn-outline" onclick="showScreen('tracker')">Decline</button>
+    </div>
+  </section>
+
+  <!-- ========== 10. STORE STATUS ========== -->
+  <section class="screen" id="storestatus">
+    <span class="pill pill-amber preview-tag">preview</span>
+    <div class="topbar">
+      <button class="back" onclick="showScreen('escalation')" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16182B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      </button>
+      <span class="ttl">Repair status</span>
+    </div>
+    <div class="scroll">
+      <div class="card">
+        <div class="timeline" id="timeline"></div>
+      </div>
+      <p class="tiny muted" style="margin-top:12px;text-align:center;">You'll get a notification at every step. Nothing moves without your approval.</p>
+    </div>
+  </section>
+
+  <!-- ========== 11. HEALTH ========== -->
+  <section class="screen" id="health">
+    <div class="scroll has-nav">
+      <div class="topbar" style="padding-left:0;padding-right:0;">
+        <span class="ttl" style="font-size:21px;font-weight:500;">Device health</span>
+      </div>
+      <p class="muted small" style="margin-bottom:14px;">iPhone 14 · last checked just now</p>
+
+      <div class="card">
+        <div class="score-ring">
+          <div>
+            <div class="score-num">82<small> /100</small></div>
+            <span class="pill pill-green" style="margin-top:8px;">Good condition</span>
+          </div>
+        </div>
+        <div class="progress"><i style="width:82%;"></i></div>
+      </div>
+
+      <div class="health-tiles">
+        <div class="h-tile">
+          <div class="k"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/></svg> Battery</div>
+          <div class="v">82%</div>
+          <p class="tiny muted">Maximum capacity</p>
+        </div>
+        <div class="h-tile">
+          <div class="k"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M5 9l-2 2M19 9l2 2M12 22a7 7 0 0 0 7-7c0-3-3-5-7-9-4 4-7 6-7 9a7 7 0 0 0 7 7Z"/></svg> Drops</div>
+          <div class="v">2</div>
+          <p class="tiny muted">Detected this month</p>
+        </div>
+      </div>
+
+      <div class="health-tiles">
+        <div class="h-tile">
+          <div class="k">Thermal</div>
+          <div class="v" style="font-size:18px;color:var(--green-text);">Normal</div>
+        </div>
+        <div class="h-tile">
+          <div class="k">Charge port</div>
+          <div class="v" style="font-size:18px;color:var(--green-text);">OK</div>
+        </div>
+      </div>
+
+      <div class="forecast">
+        <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+        <div style="flex:1;">
+          <b>Battery ~6 weeks left</b>
+          <p class="small" style="color:var(--amber-text);opacity:.9;margin-top:3px;">Book a fix before it fails — ₹2,499</p>
+          <button class="btn btn-primary" style="margin-top:12px;padding:11px;" onclick="quickFix('Battery drains')">Book battery fix</button>
+        </div>
+      </div>
+    </div>
+    <!-- bottom nav injected -->
+  </section>
+
+  <!-- ========== BOOKINGS (stub) ========== -->
+  <section class="screen" id="bookings">
+    <div class="scroll has-nav">
+      <div class="topbar" style="padding-left:0;padding-right:0;">
+        <span class="ttl" style="font-size:21px;font-weight:500;">Your bookings</span>
+      </div>
+      <div class="card" style="margin-top:8px;">
+        <div class="row" style="justify-content:space-between;">
+          <b style="font-weight:500;">iPhone 14 · Display replacement</b>
+          <span class="pill pill-green">Confirmed</span>
+        </div>
+        <div class="divider"></div>
+        <p class="small muted">Today, 4:00 PM · Flat 402, Tower A, Sector 52</p>
+        <button class="btn btn-ghost" style="margin-top:14px;" onclick="showScreen('tracker')">View tracking</button>
+      </div>
+      <div class="stub-empty" style="flex:none;padding:30px;">
+        <p class="small">No other bookings yet.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROFILE (stub) ========== -->
+  <section class="screen" id="profile">
+    <div class="scroll has-nav">
+      <div class="topbar" style="padding-left:0;padding-right:0;">
+        <span class="ttl" style="font-size:21px;font-weight:500;">Profile</span>
+      </div>
+      <div class="card" style="margin-top:8px;">
+        <div class="tech-card">
+          <span class="av">A</span>
+          <div class="meta">
+            <b>Aman</b>
+            <p class="small muted">iamaman.397@gmail.com</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row" style="gap:11px;">
+          <span style="color:var(--purple);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></span>
+          <div><b style="font-weight:500;font-size:14px;">Home</b><p class="tiny muted">Flat 402, Tower A, Sector 52, Gurugram</p></div>
+        </div>
+      </div>
+      <div class="stub-empty" style="flex:none;padding:30px;">
+        <span class="ico"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+        <p class="small">Saved devices, payment methods &amp; support live here.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ===================== STATE (no localStorage — plain JS vars) ===================== */
+const STATE = {
+  model: 'iPhone 14',
+  issueText: '',
+  selectedChip: '',
+  slot: 'Today, 4:00 PM',
+  diagnosis: null
+};
+
+/* ===================== SAMPLE DATA (hardcoded constants) ===================== */
+const MODELS = ['iPhone 17','iPhone 16','iPhone 15','iPhone 14','iPhone 13','iPhone 12','iPhone 11','iPhone SE'];
+
+const ISSUE_CHIPS = ['Cracked screen','Battery drains',"Won't charge",'Back glass','Camera','Speaker / mic'];
+
+const SLOTS = ['Today 4 PM','Today 6 PM','Tom 11 AM'];
+
+const TECH = { name:'Rohit K', rating:4.9, tag:'Certified · ID verified', distance:'2.1 km away', initials:'RK' };
+
+const STORE_STEPS = [
+  { label:'Inspection in progress', sub:'Our store team examined your device', state:'done' },
+  { label:'Received at store', sub:'Logged & photographed on arrival', state:'done' },
+  { label:'Price confirmed by you', sub:'You approved the revised quote', state:'done' },
+  { label:'Dispatched for repair', sub:'On the bench with a certified engineer', state:'current' },
+  { label:'Sent back to you', sub:'Out for doorstep delivery', state:'pending' },
+  { label:'Checked by you', sub:'Inspect before you accept', state:'pending' },
+  { label:'Payment received', sub:'Visit fee adjusted in final bill', state:'pending' }
+];
+
+/* SVG icon set per diagnosis (outline) */
+const ICONS = {
+  screen:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="m10 6 3 4-2 3 3 3"/></svg>',
+  battery:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/><path d="m11 9-2 4h3l-2 4"/></svg>',
+  charge:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg>',
+  glass:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="m9 7 3 3-2 2 3 3"/></svg>',
+  camera:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L19 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  speaker:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  water:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z"/></svg>',
+  generic:'<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.7-2.5 2-2.5 4"/><path d="M12 17h.01"/></svg>'
+};
+
+/* ===================== ROUTER ===================== */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  // scroll the screen's scroll area back to top
+  const sc = el.querySelector('.scroll');
+  if(sc) sc.scrollTop = 0;
+  // sync bottom nav active state for tab screens
+  syncNav(id);
+}
+
+/* ===================== BOTTOM NAV ===================== */
+const NAV = [
+  { id:'home',    label:'Home',     icon:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/>' },
+  { id:'bookings',label:'Bookings', icon:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/>' },
+  { id:'health',  label:'Health',   icon:'<path d="M3 12h4l2-6 4 12 2-6h6"/>' },
+  { id:'profile', label:'Profile',  icon:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>' }
+];
+
+function buildNav(activeId){
+  return '<div class="bottomnav">' + NAV.map(n =>
+    `<button class="navitem ${n.id===activeId?'active':''}" data-nav="${n.id}" onclick="showScreen('${n.id}')">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${n.icon}</svg>
+       <span>${n.label}</span>
+     </button>`).join('') + '</div>';
+}
+
+// inject nav into every tab screen
+['home','bookings','health','profile'].forEach(id => {
+  document.getElementById(id).insertAdjacentHTML('beforeend', buildNav(id));
+});
+
+function syncNav(id){
+  document.querySelectorAll('.bottomnav .navitem').forEach(it => {
+    it.classList.toggle('active', it.dataset.nav === id);
+  });
+}
+
+/* ===================== BUILD DYNAMIC CONTENT ===================== */
+// Model grid
+const modelGrid = document.getElementById('modelGrid');
+MODELS.forEach(m => {
+  const b = document.createElement('button');
+  b.className = 'model-chip' + (m===STATE.model ? ' selected' : '');
+  b.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg> ${m}`;
+  b.onclick = () => {
+    STATE.model = m;
+    document.querySelectorAll('#modelGrid .model-chip').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    document.getElementById('describeModelPill').textContent = m;
+  };
+  modelGrid.appendChild(b);
+});
+
+// Issue chips
+const issueChips = document.getElementById('issueChips');
+ISSUE_CHIPS.forEach(c => {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = c;
+  b.onclick = () => {
+    const on = b.classList.contains('selected');
+    document.querySelectorAll('#issueChips .chip').forEach(x => x.classList.remove('selected'));
+    if(on){ STATE.selectedChip=''; }
+    else { b.classList.add('selected'); STATE.selectedChip = c; }
+  };
+  issueChips.appendChild(b);
+});
+
+// Slot chips
+const slotChips = document.getElementById('slotChips');
+const SLOT_FULL = { 'Today 4 PM':'Today, 4:00 PM', 'Today 6 PM':'Today, 6:00 PM', 'Tom 11 AM':'Tomorrow, 11:00 AM' };
+SLOTS.forEach((s,i) => {
+  const b = document.createElement('button');
+  b.className = 'chip' + (i===0 ? ' selected' : '');
+  b.textContent = s;
+  b.onclick = () => {
+    document.querySelectorAll('#slotChips .chip').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    STATE.slot = SLOT_FULL[s];
+  };
+  slotChips.appendChild(b);
+});
+
+// Store-status timeline
+const timeline = document.getElementById('timeline');
+STORE_STEPS.forEach(step => {
+  const item = document.createElement('div');
+  item.className = 'tl-item';
+  let dotInner = '';
+  if(step.state==='done') dotInner = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  item.innerHTML = `
+    <div class="tl-marker">
+      <span class="tl-dot ${step.state}">${dotInner}</span>
+      <span class="tl-line"></span>
+    </div>
+    <div class="tl-body">
+      <div class="t ${step.state==='pending'?'muted':''}">${step.label}</div>
+      <div class="s">${step.sub}</div>
+    </div>`;
+  timeline.appendChild(item);
+});
+
+/* ===================== FLOW HELPERS ===================== */
+function startRepair(){
+  showScreen('model');
+}
+
+function quickFix(issue){
+  // jump straight into Describe with the issue pre-filled
+  STATE.selectedChip = '';
+  document.getElementById('describeModelPill').textContent = STATE.model;
+  const ta = document.getElementById('issueText');
+  // map the shortcut label to a sensible pre-filled description / chip
+  const map = {
+    'Cracked screen':'My screen is cracked',
+    'Battery drains':'My battery drains really fast',
+    "Won't charge":"My phone won't charge",
+    'Other':''
+  };
+  ta.value = map[issue] !== undefined ? map[issue] : issue;
+  STATE.issueText = ta.value;
+  // pre-select matching chip if present
+  document.querySelectorAll('#issueChips .chip').forEach(x => {
+    x.classList.remove('selected');
+    if((issue==='Cracked screen' && x.textContent==='Cracked screen') ||
+       (issue==='Battery drains' && x.textContent==='Battery drains') ||
+       (issue==="Won't charge" && x.textContent==="Won't charge")){
+      x.classList.add('selected');
+      STATE.selectedChip = x.textContent;
+    }
+  });
+  showScreen('describe');
+}
+
+function addPhoto(el){
+  el.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Photo added';
+  el.style.color = 'var(--green-text)';
+  el.style.borderColor = '#bfe6d6';
+  el.style.background = 'var(--green-fill)';
+}
+
+function useLocation(el){
+  el.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Location set · Sector 52, Gurugram';
+}
+
+/* ===================== DIAGNOSIS LOGIC (front-end simulation) ===================== */
+/* In production this is replaced by a real Claude API call behind a serverless function
+   (the API key is never exposed client-side). */
+function runDiagnosis(){
+  STATE.issueText = document.getElementById('issueText').value;
+  const text = (STATE.issueText + ' ' + STATE.selectedChip).toLowerCase();
+
+  const rules = [
+    { kw:['water','wet','liquid','dropped in'], escalate:true,
+      title:'Possible liquid damage', icon:'water',
+      desc:"Liquid exposure can affect internal components. This needs a closer look at our store before we can quote." },
+    { kw:['crack','shatter','broken screen','display','touch','lines','screen'],
+      title:'Display replacement', icon:'screen', price:'₹6,499 – ₹7,999', repair:'₹6,499',
+      desc:'Your screen glass and display panel need replacing. We carry the part on-site.' },
+    { kw:['battery','drain','dies','heating','charge fast'],
+      title:'Battery replacement', icon:'battery', price:'₹2,499 – ₹3,499', repair:'₹2,499',
+      desc:'Your battery is degraded. A fresh cell restores full-day life — done at your door.' },
+    { kw:['charge','charging','port',"won't charge",'wont charge'],
+      title:'Charging port repair', icon:'charge', price:'₹1,499 – ₹2,499', repair:'₹1,499',
+      desc:'The charging port is loose or worn. We clean or replace it on-site in minutes.' },
+    { kw:['back glass','rear','back broken','back'],
+      title:'Back glass replacement', icon:'glass', price:'₹3,499 – ₹4,999', repair:'₹3,499',
+      desc:'The rear glass is cracked. We swap it for an exact-fit replacement panel.' },
+    { kw:['camera','blur','photo'],
+      title:'Camera repair', icon:'camera', price:'₹2,999 – ₹4,499', repair:'₹2,999',
+      desc:'Your camera module needs servicing or replacing for clear shots again.' },
+    { kw:['speaker','mic','sound','audio','call'],
+      title:'Speaker / mic repair', icon:'speaker', price:'₹1,299 – ₹1,999', repair:'₹1,299',
+      desc:'Audio or mic issue detected. We service the speaker/mic assembly on-site.' }
+  ];
+
+  let result = null;
+  for(const r of rules){
+    if(r.kw.some(k => text.includes(k))){ result = r; break; }
+  }
+
+  if(!result){
+    result = {
+      generic:true, title:"We'll confirm on-site", icon:'generic',
+      price:'Confirmed on-site', repair:'On-site quote',
+      desc:"We couldn't pin it down from the description alone — our technician will diagnose it free at your door, then lock the price before any work." };
+  }
+
+  STATE.diagnosis = result;
+
+  // Water → route straight to escalation branch
+  if(result.escalate){
+    document.getElementById('trackerSub').textContent = STATE.model + ' · ' + result.title;
+    showScreen('escalation');
+    return;
+  }
+
+  // Populate diagnosis screen
+  document.getElementById('diagIcon').innerHTML = ICONS[result.icon];
+  document.getElementById('diagTitle').textContent = result.title;
+  document.getElementById('diagDesc').textContent = result.desc;
+  document.getElementById('priceAmt').textContent = result.price;
+  document.getElementById('describeModelPill').textContent = STATE.model;
+
+  // match pill + price box styling for generic
+  const matchPill = document.getElementById('diagMatch');
+  const priceBox = document.getElementById('priceBox');
+  const priceLab = priceBox.querySelector('.lab');
+  if(result.generic){
+    matchPill.className = 'pill pill-amber';
+    matchPill.style.marginTop = '6px';
+    matchPill.innerHTML = 'Needs on-site check';
+    priceBox.style.background = 'var(--amber-fill)';
+    priceLab.style.color = 'var(--amber-text)';
+    priceLab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg> Price confirmed on-site';
+  } else {
+    matchPill.className = 'pill pill-green';
+    matchPill.style.marginTop = '6px';
+    matchPill.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> High match';
+    priceBox.style.background = 'var(--green-fill)';
+    priceLab.style.color = 'var(--green-text)';
+    priceLab.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Locked price · won\'t change';
+  }
+
+  // feed fix-or-upgrade + tracker
+  document.getElementById('worthRepair').textContent = result.repair;
+  document.getElementById('trackerSub').textContent = STATE.model + ' · ' + result.title;
+
+  showScreen('diagnosis');
+}
+
+/* update tracker slot whenever we land on it */
+const _origShow = showScreen;
+showScreen = function(id){
+  _origShow(id);
+  if(id==='tracker'){
+    document.getElementById('trackerSlot').textContent = STATE.slot + ' — your selected slot';
+  }
+};
+
+/* ===================== SPLASH AUTO-ADVANCE ===================== */
+let splashDone = false;
+function leaveSplash(){
+  if(splashDone) return;
+  splashDone = true;
+  showScreen('home');
+}
+document.getElementById('splash').addEventListener('click', leaveSplash);
+setTimeout(leaveSplash, 1500);
+</script>
+</body>
+</html>
